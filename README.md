@@ -2,7 +2,6 @@
 
 ## About
 Jasgo is a type-safe framework for generating JVM (jasmin) assembly language.
-
 It is convenient for writing compilers for the JVM.
 
 Example:
