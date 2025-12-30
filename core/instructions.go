@@ -2,59 +2,55 @@ package internal
 
 import "fmt"
 
-func (m *Method) Aload(index int) *Method {
+func (m *Method) emitLocal(name string, index int) *Method {
+	ValidateLimit(fmt.Sprintf("%s index", name), index, LocalsLimit)
 	if index >= 0 && index <= 3 {
-		return m.Instruction(fmt.Sprintf("aload_%d", index))
+		return m.Instruction(fmt.Sprintf("%s_%d", name, index))
 	}
-	return m.Instruction(fmt.Sprintf("aload %d", index))
+	return m.Instruction(fmt.Sprintf("%s %d", name, index))
+}
+
+func (m *Method) Aload(index int) *Method {
+	return m.emitLocal("aload", index)
 }
 
 func (m *Method) Astore(index int) *Method {
-	if index >= 0 && index <= 3 {
-		return m.Instruction(fmt.Sprintf("astore_%d", index))
-	}
-	return m.Instruction(fmt.Sprintf("astore %d", index))
+	return m.emitLocal("astore", index)
 }
 
 func (m *Method) Iload(index int) *Method {
-	if index >= 0 && index <= 3 {
-		return m.Instruction(fmt.Sprintf("iload_%d", index))
-	}
-	return m.Instruction(fmt.Sprintf("iload %d", index))
+	return m.emitLocal("iload", index)
 }
 
 func (m *Method) Istore(index int) *Method {
-	if index >= 0 && index <= 3 {
-		return m.Instruction(fmt.Sprintf("istore_%d", index))
-	}
-	return m.Instruction(fmt.Sprintf("istore %d", index))
+	return m.emitLocal("istore", index)
 }
 
 func (m *Method) Fload(index int) *Method {
-	return m.Instruction(fmt.Sprintf("fload %d", index))
+	return m.emitLocal("fload", index)
 }
 
 func (m *Method) Fstore(index int) *Method {
-	return m.Instruction(fmt.Sprintf("fstore %d", index))
+	return m.emitLocal("fstore", index)
 }
 
 func (m *Method) Dload(index int) *Method {
-	return m.Instruction(fmt.Sprintf("dload %d", index))
+	return m.emitLocal("dload", index)
 }
 
 func (m *Method) Dstore(index int) *Method {
-	return m.Instruction(fmt.Sprintf("dstore %d", index))
+	return m.emitLocal("dstore", index)
 }
 
 func (m *Method) Lload(index int) *Method {
-	return m.Instruction(fmt.Sprintf("lload %d", index))
+	return m.emitLocal("lload", index)
 }
 
 func (m *Method) Lstore(index int) *Method {
-	return m.Instruction(fmt.Sprintf("lstore %d", index))
+	return m.emitLocal("lstore", index)
 }
 
-func (m *Method) Ldc(value interface{}) *Method {
+func (m *Method) Ldc(value any) *Method {
 	switch v := value.(type) {
 	case string:
 		return m.Instruction(fmt.Sprintf("ldc \"%s\"", v))
@@ -183,7 +179,6 @@ func (m *Method) Fcmpg() *Method { return m.Instruction("fcmpg") }
 func (m *Method) Dcmpl() *Method { return m.Instruction("dcmpl") }
 func (m *Method) Dcmpg() *Method { return m.Instruction("dcmpg") }
 
-
 func (m *Method) InvokeVirtual(className, methodName, descriptor string) *Method {
 	return m.Instruction(fmt.Sprintf("invokevirtual %s/%s%s", className, methodName, descriptor))
 }
@@ -197,6 +192,7 @@ func (m *Method) InvokeSpecial(className, methodName, descriptor string) *Method
 }
 
 func (m *Method) InvokeInterface(className, methodName, descriptor string, count int) *Method {
+	ValidateLimit("invokeinterface index", 255, IndexLimit)
 	return m.Instruction(fmt.Sprintf("invokeinterface %s/%s%s %d", className, methodName, descriptor, count))
 }
 
@@ -229,6 +225,7 @@ func (m *Method) ANewArray(className string) *Method {
 }
 
 func (m *Method) MultiANewArray(descriptor string, dimensions int) *Method {
+	ValidateLimit("array dimensions", dimensions, ArrayDimensionsLimit)
 	return m.Instruction(fmt.Sprintf("multianewarray %s %d", descriptor, dimensions))
 }
 
@@ -283,6 +280,8 @@ func (m *Method) Lreturn() *Method { return m.Instruction("lreturn") }
 func (m *Method) Athrow() *Method { return m.Instruction("athrow") }
 
 func (m *Method) Iinc(index, amount int) *Method {
+	ValidateLimit("iinc index", index, IndexLimit)
+	ValidateRange("iinc amount", amount, -128, 127)
 	return m.Instruction(fmt.Sprintf("iinc %d %d", index, amount))
 }
 
