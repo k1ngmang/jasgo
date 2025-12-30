@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-
 type Method struct {
 	name         string
 	descriptor   string
@@ -33,6 +32,8 @@ func NewMethod(name, descriptor string, flags ...AccessFlag) *Method {
 }
 
 func (m *Method) SetLimits(stack, locals int) *Method {
+	ValidateLimit("stack", stack, StackLimit)
+	ValidateLimit("locals", locals, LocalsLimit)
 	m.stackLimit = stack
 	m.localsLimit = locals
 	return m
@@ -76,12 +77,12 @@ func (m *Method) Generate() string {
 	sb.WriteString(m.descriptor)
 	sb.WriteString("\n")
 
-	sb.WriteString(fmt.Sprintf("    .limit stack %d\n", m.stackLimit))
-	sb.WriteString(fmt.Sprintf("    .limit locals %d\n", m.localsLimit))
+	fmt.Fprintf(&sb, "    .limit stack %d\n", m.stackLimit)
+	fmt.Fprintf(&sb, "    .limit locals %d\n", m.localsLimit)
 
 	for _, e := range m.exceptions {
-		sb.WriteString(fmt.Sprintf("    .catch %s from %s to %s using %s\n",
-			e.exceptionType, e.from, e.to, e.target))
+		fmt.Fprintf(&sb, "    .catch %s from %s to %s using %s\n",
+			e.exceptionType, e.from, e.to, e.target)
 	}
 
 	for _, inst := range m.instructions {
