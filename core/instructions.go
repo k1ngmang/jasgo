@@ -1,6 +1,12 @@
 package internal
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+	"slices"
+	"sort"
+	"strings"
+)
 
 func (m *Method) emitLocal(name string, index int) *Method {
 	ValidateLimit(fmt.Sprintf("%s index", name), index, LocalsLimit)
@@ -81,6 +87,29 @@ func (m *Method) Iconst(value int) *Method {
 	return m.Ldc(value)
 }
 
+func (m *Method) Fconst(value float32) *Method {
+	switch value {
+	case 0.0:
+		return m.Instruction("fconst_0")
+	case 1.0:
+		return m.Instruction("fconst_1")
+	case 2.0:
+		return m.Instruction("fconst_2")
+	default:
+		return m.Ldc(value)
+	}
+}
+
+func (m *Method) Dconst(value float32) *Method {
+	switch value {
+	case 0.0:
+		return m.Instruction("dconst_0")
+	case 1.0:
+		return m.Instruction("dconst_1")
+	default:
+		return m.Ldc(value)
+	}
+}
 func (m *Method) AconstNull() *Method {
 	return m.Instruction("aconst_null")
 }
@@ -91,27 +120,46 @@ func (m *Method) Imul() *Method { return m.Instruction("imul") }
 func (m *Method) Idiv() *Method { return m.Instruction("idiv") }
 func (m *Method) Irem() *Method { return m.Instruction("irem") }
 func (m *Method) Ineg() *Method { return m.Instruction("ineg") }
-
-func (m *Method) Fadd() *Method { return m.Instruction("fadd") }
-func (m *Method) Fsub() *Method { return m.Instruction("fsub") }
-func (m *Method) Fmul() *Method { return m.Instruction("fmul") }
-func (m *Method) Fdiv() *Method { return m.Instruction("fdiv") }
-
-func (m *Method) Dadd() *Method { return m.Instruction("dadd") }
-func (m *Method) Dsub() *Method { return m.Instruction("dsub") }
-func (m *Method) Dmul() *Method { return m.Instruction("dmul") }
-func (m *Method) Ddiv() *Method { return m.Instruction("ddiv") }
-
-func (m *Method) Ladd() *Method { return m.Instruction("ladd") }
-func (m *Method) Lsub() *Method { return m.Instruction("lsub") }
-func (m *Method) Lmul() *Method { return m.Instruction("lmul") }
-func (m *Method) Ldiv() *Method { return m.Instruction("ldiv") }
-
 func (m *Method) Iand() *Method { return m.Instruction("iand") }
 func (m *Method) Ior() *Method  { return m.Instruction("ior") }
 func (m *Method) Ixor() *Method { return m.Instruction("ixor") }
 func (m *Method) Ishl() *Method { return m.Instruction("ishl") }
 func (m *Method) Ishr() *Method { return m.Instruction("ishr") }
+
+func (m *Method) Fadd() *Method { return m.Instruction("fadd") }
+func (m *Method) Fsub() *Method { return m.Instruction("fsub") }
+func (m *Method) Fmul() *Method { return m.Instruction("fmul") }
+func (m *Method) Fdiv() *Method { return m.Instruction("fdiv") }
+func (m *Method) Frem() *Method { return m.Instruction("frem") }
+func (m *Method) Fneg() *Method { return m.Instruction("fneg") }
+
+func (m *Method) Dadd() *Method { return m.Instruction("dadd") }
+func (m *Method) Dsub() *Method { return m.Instruction("dsub") }
+func (m *Method) Dmul() *Method { return m.Instruction("dmul") }
+func (m *Method) Ddiv() *Method { return m.Instruction("ddiv") }
+func (m *Method) Drem() *Method { return m.Instruction("drem") }
+func (m *Method) Dneg() *Method { return m.Instruction("dneg") }
+
+func (m *Method) Ladd() *Method  { return m.Instruction("ladd") }
+func (m *Method) Lsub() *Method  { return m.Instruction("lsub") }
+func (m *Method) Lmul() *Method  { return m.Instruction("lmul") }
+func (m *Method) Ldiv() *Method  { return m.Instruction("ldiv") }
+func (m *Method) Lrem() *Method  { return m.Instruction("lrem") }
+func (m *Method) Lneg() *Method  { return m.Instruction("lneg") }
+func (m *Method) Land() *Method  { return m.Instruction("lshr") }
+func (m *Method) Lor() *Method   { return m.Instruction("lor") }
+func (m *Method) Lxor() *Method  { return m.Instruction("lxor") }
+func (m *Method) Lshl() *Method  { return m.Instruction("lshl") }
+func (m *Method) Lshr() *Method  { return m.Instruction("lshr") }
+func (m *Method) Lushr() *Method { return m.Instruction("lushr") }
+
+func (m *Method) IfAcmpEq(label string) *Method {
+	return m.Instruction(fmt.Sprintf("if_acmpeq %s", label))
+}
+
+func (m *Method) IfAcmpNe(label string) *Method {
+	return m.Instruction(fmt.Sprintf("if_acmpne %s", label))
+}
 
 func (m *Method) IfIcmpEq(label string) *Method {
 	return m.Instruction(fmt.Sprintf("if_icmpeq %s", label))
@@ -171,6 +219,16 @@ func (m *Method) IfNonNull(label string) *Method {
 
 func (m *Method) Goto(label string) *Method {
 	return m.Instruction(fmt.Sprintf("goto %s", label))
+}
+func (m *Method) GotoW(label string) *Method {
+	return m.Instruction(fmt.Sprintf("goto_w %s", label))
+}
+
+func (m *Method) Jsr(label string) *Method {
+	return m.Instruction(fmt.Sprintf("jsr %s", label))
+}
+func (m *Method) JsrW(label string) *Method {
+	return m.Instruction(fmt.Sprintf("jsr_w %s", label))
 }
 
 func (m *Method) Lcmp() *Method  { return m.Instruction("lcmp") }
@@ -241,26 +299,37 @@ func (m *Method) Baload() *Method  { return m.Instruction("baload") }
 func (m *Method) Bastore() *Method { return m.Instruction("bastore") }
 func (m *Method) Caload() *Method  { return m.Instruction("caload") }
 func (m *Method) Castore() *Method { return m.Instruction("castore") }
+func (m *Method) Saload() *Method  { return m.Instruction("saload") }
+func (m *Method) Sastore() *Method { return m.Instruction("sastore") }
 
-func (m *Method) Pop() *Method   { return m.Instruction("pop") }
-func (m *Method) Pop2() *Method  { return m.Instruction("pop2") }
-func (m *Method) Dup() *Method   { return m.Instruction("dup") }
-func (m *Method) Dup2() *Method  { return m.Instruction("dup2") }
-func (m *Method) DupX1() *Method { return m.Instruction("dup_x1") }
-func (m *Method) DupX2() *Method { return m.Instruction("dup_x2") }
-func (m *Method) Swap() *Method  { return m.Instruction("swap") }
+func (m *Method) Pop() *Method    { return m.Instruction("pop") }
+func (m *Method) Pop2() *Method   { return m.Instruction("pop2") }
+func (m *Method) Dup() *Method    { return m.Instruction("dup") }
+func (m *Method) Dup2() *Method   { return m.Instruction("dup2") }
+func (m *Method) DupX1() *Method  { return m.Instruction("dup_x1") }
+func (m *Method) DupX2() *Method  { return m.Instruction("dup_x2") }
+func (m *Method) Dup2X1() *Method { return m.Instruction("dup2_x1") }
+func (m *Method) Dup2X2() *Method { return m.Instruction("dup2_x2") }
+func (m *Method) Swap() *Method   { return m.Instruction("swap") }
 
 func (m *Method) I2f() *Method { return m.Instruction("i2f") }
 func (m *Method) I2d() *Method { return m.Instruction("i2d") }
 func (m *Method) I2l() *Method { return m.Instruction("i2l") }
-func (m *Method) F2i() *Method { return m.Instruction("f2i") }
-func (m *Method) F2d() *Method { return m.Instruction("f2d") }
-func (m *Method) D2i() *Method { return m.Instruction("d2i") }
-func (m *Method) D2f() *Method { return m.Instruction("d2f") }
-func (m *Method) L2i() *Method { return m.Instruction("l2i") }
 func (m *Method) I2b() *Method { return m.Instruction("i2b") }
 func (m *Method) I2c() *Method { return m.Instruction("i2c") }
 func (m *Method) I2s() *Method { return m.Instruction("i2s") }
+
+func (m *Method) F2i() *Method { return m.Instruction("f2i") }
+func (m *Method) F2d() *Method { return m.Instruction("f2d") }
+func (m *Method) F2l() *Method { return m.Instruction("f2l") }
+
+func (m *Method) D2i() *Method { return m.Instruction("d2i") }
+func (m *Method) D2f() *Method { return m.Instruction("d2f") }
+func (m *Method) D2l() *Method { return m.Instruction("d2l") }
+
+func (m *Method) L2i() *Method { return m.Instruction("l2i") }
+func (m *Method) L2f() *Method { return m.Instruction("l2f") }
+func (m *Method) L2d() *Method { return m.Instruction("l2d") }
 
 func (m *Method) Checkcast(className string) *Method {
 	return m.Instruction(fmt.Sprintf("checkcast %s", className))
@@ -284,5 +353,41 @@ func (m *Method) Iinc(index, amount int) *Method {
 	ValidateRange("iinc amount", amount, -128, 127)
 	return m.Instruction(fmt.Sprintf("iinc %d %d", index, amount))
 }
+
+func (m *Method) LookupSwitch(defaultLabel string, cases map[int]string) *Method {
+	ValidateAtLeast("lookupswitch cases amount", len(cases), MinSwitchCases)
+
+	keys := slices.Collect(maps.Keys(cases))
+	sort.Ints(keys)
+
+	var sb strings.Builder
+	sb.WriteString("lookupswitch\n")
+
+	for _, k := range keys {
+		fmt.Fprintf(&sb, "        %d: %s\n", k, cases[k])
+	}
+
+	fmt.Fprintf(&sb, "        default: %s", defaultLabel)
+
+	return m.Instruction(sb.String())
+}
+
+func (m *Method) TableSwitch(defaultLabel string, low int, cases []string) *Method {
+	ValidateRange("tableswitch low", low, 0, TableSwitchLowLimit)
+	ValidateAtLeast("tableswitch cases amount", len(cases), MinSwitchCases)
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "tableswitch %d\n", low)
+
+	for _, c := range cases {
+		fmt.Fprintf(&sb, "        %s\n", c)
+	}
+
+	fmt.Fprintf(&sb, "        default: %s", defaultLabel)
+
+	return m.Instruction(sb.String())
+}
+func (m *Method) MonitorEnter() *Method { return m.Instruction("monitorenter") }
+func (m *Method) MonitorExit() *Method  { return m.Instruction("monitorexit") }
 
 func (m *Method) Nop() *Method { return m.Instruction("nop") }

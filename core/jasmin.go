@@ -75,7 +75,7 @@ func (c *ClassFile) Generate() string {
 	var sb strings.Builder
 
 	if c.source != "" {
-		sb.WriteString(fmt.Sprintf(".source %s\n", c.source))
+		fmt.Fprintf(&sb, ".source %s\n", c.source)
 	}
 
 	sb.WriteString(".class ")
@@ -86,10 +86,10 @@ func (c *ClassFile) Generate() string {
 	sb.WriteString(c.name)
 	sb.WriteString("\n")
 
-	sb.WriteString(fmt.Sprintf(".super %s\n", c.superClass))
+	fmt.Fprintf(&sb, ".super %s\n", c.superClass)
 
 	for _, iface := range c.interfaces {
-		sb.WriteString(fmt.Sprintf(".implements %s\n", iface))
+		fmt.Fprintf(&sb, ".implements %s\n", iface)
 	}
 
 	sb.WriteString("\n")
