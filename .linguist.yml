@@ -1,3 +1,6 @@
 language:
   Jasmin:
     color: "#ff69b4"
+    type: programming
+    extensions: [".j", ".jasmin"]
+    aliases: ["jasmin"]
