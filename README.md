@@ -1,4 +1,4 @@
-<img src="branding/logo.png" width="600">
+<img src="branding/logo.png" width="400">
 
 ## About
 Jasgo is a type-safe framework for generating JVM (jasmin) assembly language.
